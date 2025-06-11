@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+node_modules/
+
+# Virtual environment folders
+venv/
+venvsource/
+
+# Environment variables
+.env
+
+# VS Code settings (optional)
+.vscode/
+
+# Python egg files
+*.egg-info/
+*.egg
+
+# HTML test outputs or temporary files
+*.log
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Package management
+pip-log.txt
+
+# Requirements backups
+requirements*.bak
+
+# Test coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.cache
+.pytest_cache/
+
+# MyPy
+.mypy_cache/
+
+# FastAPI specific (if you're generating static docs or temp files)
+static/

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Hiring Assistant – Resume, Interview & Pose</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 2rem;
+    }
+    section {
+      background: white;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #333;
+    }
+    input, textarea, button {
+      margin-top: 10px;
+      display: block;
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    video {
+      width: 100%;
+      max-width: 500px;
+      margin-top: 10px;
+      border: 1px solid #ccc;
+    }
+    pre {
+      background: #eee;
+      padding: 1rem;
+      border-radius: 5px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🤖 AI-Driven Interview System</h1>
+
+  <!-- Resume Scoring -->
+  <section>
+    <h2>📄 Resume Scoring</h2>
+    <input type="file" id="resumeFile" accept=".pdf">
+    <textarea id="resumeJD" placeholder="Enter Job Description here"></textarea>
+    <button onclick="uploadResume()">Upload & Score</button>
+    <p><strong>Score:</strong> <span id="resumeScore">--</span></p>
+    <p><strong>Keywords:</strong> <span id="resumeKeywords">--</span></p>
+  </section>
+
+  <!-- Interview Questions -->
+  <section>
+    <h2>📝 Generate Interview Questions</h2>
+    <input id="role" placeholder="Enter Job Role (e.g., UI UX Developer)">
+    <textarea id="desc" placeholder="Enter Job Description"></textarea>
+    <button onclick="generateQuestions()">Get Questions</button>
+    <pre id="questionOutput">--</pre>
+  </section>
+
+  <!-- Pose Analysis -->
+  <section>
+    <h2>🎥 Pose Analysis (Live Recording)</h2>
+    <video id="webcam" autoplay muted></video>
+    <button onclick="startRecording()">Start</button>
+    <button onclick="stopRecording()">Stop & Analyze</button>
+    <pre id="poseResult">--</pre>
+  </section>
+
+  <script>
+    // Resume Upload & Score
+    async function uploadResume() {
+      const fileInput = document.getElementById("resumeFile");
+      const jd = document.getElementById("resumeJD").value;
+      if (!fileInput.files.length || !jd) return alert("Please select a file and enter job description.");
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      formData.append("job_description", jd);
+
+      const res = await fetch("http://127.0.0.1:8000/resume/score", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+      document.getElementById("resumeScore").innerText = data.score || "--";
+      document.getElementById("resumeKeywords").innerText = (data.keywords || []).join(", ");
+    }
+
+    // Interview Question Generation
+    async function generateQuestions() {
+      const role = document.getElementById("role").value;
+      const job_description = document.getElementById("desc").value;
+
+      try {
+        const res = await fetch("http://127.0.0.1:8000/interview/generate_questions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role, job_description })
+        });
+
+        if (!res.ok) {
+          throw new Error(await res.text());
+        }
+
+        const data = await res.json();
+        const output = Array.isArray(data.questions)
+          ? data.questions.join("\n")
+          : data.questions || "No questions returned";
+
+        document.getElementById("questionOutput").textContent = output;
+      } catch (err) {
+        document.getElementById("questionOutput").textContent = "❌ Error: " + err.message;
+      }
+    }
+
+    // Pose Detection
+    let mediaRecorder;
+    let chunks = [];
+    const webcam = document.getElementById("webcam");
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => webcam.srcObject = stream);
+
+    function startRecording() {
+      chunks = [];
+      const stream = webcam.srcObject;
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = e => chunks.push(e.data);
+      mediaRecorder.start();
+    }
+
+    function stopRecording() {
+      mediaRecorder.stop();
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const formData = new FormData();
+        formData.append("video", blob, "pose_video.webm");
+
+        const res = await fetch("http://localhost:8000/pose/analyze", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+        document.getElementById("poseResult").textContent = JSON.stringify(data, null, 2);
+      };
+    }
+  </script>
+
+</body>
+</html>
